@@ -7,32 +7,34 @@ terraform {
   }
 }
 
+provider "aws" {
+  region = "ap-south-1"
+}
 
+data "aws_vpc" "default" {
+  default = true
+}
 
-module "vpc" {
-  source = "terraform-aws-modules/vpc/aws"
-
-  name = "cloud-app-vpc"
-  cidr = "10.0.0.0/16"
-
-  azs             = ["ap-south-1a", "ap-south-1b"]
-  public_subnets  = ["10.0.1.0/24", "10.0.2.0/24"]
-
-  enable_nat_gateway = false
-  single_nat_gateway = false
-
-  tags = {
-    Terraform = "true"
-    Environment = "dev"
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
   }
 }
+
 
 resource "aws_ecs_cluster" "main" {
   name = "cloud-app-cluster"
 }
 
 resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name = "/ecs/cloud-app"
+  name              = "/ecs/cloud-app"
+  retention_in_days = 7
+
+  lifecycle {
+    prevent_destroy = false
+    ignore_changes  = all
+  }
 }
 
 resource "aws_ecs_task_definition" "app" {
@@ -72,7 +74,7 @@ resource "aws_ecs_task_definition" "app" {
 
 resource "aws_security_group" "ecs_sg" {
   name   = "ecs-security-group"
-  vpc_id = module.vpc.vpc_id
+  vpc_id = data.aws_vpc.default.id
 
   ingress {
     from_port   = 5000
@@ -97,7 +99,7 @@ resource "aws_ecs_service" "app" {
   desired_count   = 2
 
   network_configuration {
-    subnets          = module.vpc.public_subnets
+    subnets          = data.aws_subnets.default.ids
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = true
   }
@@ -111,7 +113,7 @@ resource "aws_ecs_service" "app" {
 
 resource "aws_security_group" "alb_sg" {
   name   = "alb-security-group"
-  vpc_id = module.vpc.vpc_id
+  vpc_id = data.aws_vpc.default.id
 
   ingress {
     from_port   = 80
@@ -134,7 +136,7 @@ resource "aws_lb" "app_alb" {
   load_balancer_type = "application"
 
   security_groups = [aws_security_group.alb_sg.id]
-  subnets          = module.vpc.public_subnets
+  subnets          = data.aws_subnets.default.ids
 }
 
 resource "aws_lb_target_group" "app_tg" {
@@ -143,7 +145,7 @@ resource "aws_lb_target_group" "app_tg" {
   protocol    = "HTTP"
   target_type = "ip"
 
-  vpc_id = module.vpc.vpc_id
+  vpc_id = data.aws_vpc.default.id
 
   health_check {
     path = "/"
