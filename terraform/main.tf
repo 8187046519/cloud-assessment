@@ -7,15 +7,13 @@ terraform {
   }
 }
 
-data "aws_vpc" "default" {
-  default = true
-}
+locals {
+  vpc_id = "vpc-07178ba4f1cc4c9e7"
 
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
+  public_subnets = [
+    "subnet-0c49d4d9a9abd2bad",
+    "subnet-080fac7d04b8e5cb9"
+  ]
 }
 
 
@@ -70,7 +68,7 @@ resource "aws_ecs_task_definition" "app" {
 
 resource "aws_security_group" "ecs_sg" {
   name   = "ecs-security-group"
-  vpc_id = data.aws_vpc.default.id
+  vpc_id = local.vpc_id
 
   ingress {
     from_port   = 5000
@@ -94,8 +92,10 @@ resource "aws_ecs_service" "app" {
   launch_type     = "FARGATE"
   desired_count   = 2
 
+  depends_on = [aws_lb_listener.app_listener]
+
   network_configuration {
-    subnets          = data.aws_subnets.default.ids
+    subnets = local.public_subnets
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = true
   }
@@ -109,7 +109,7 @@ resource "aws_ecs_service" "app" {
 
 resource "aws_security_group" "alb_sg" {
   name   = "alb-security-group"
-  vpc_id = data.aws_vpc.default.id
+  vpc_id = local.vpc_id
 
   ingress {
     from_port   = 80
@@ -132,7 +132,7 @@ resource "aws_lb" "app_alb" {
   load_balancer_type = "application"
 
   security_groups = [aws_security_group.alb_sg.id]
-  subnets          = data.aws_subnets.default.ids
+  subnets = local.public_subnets
 }
 
 resource "aws_lb_target_group" "app_tg" {
@@ -141,7 +141,7 @@ resource "aws_lb_target_group" "app_tg" {
   protocol    = "HTTP"
   target_type = "ip"
 
-  vpc_id = data.aws_vpc.default.id
+  vpc_id = local.vpc_id
 
   health_check {
     path = "/"
