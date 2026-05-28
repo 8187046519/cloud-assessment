@@ -1,9 +1,9 @@
 output "vpc_id" {
-  value = module.vpc.vpc_id
+  value = data.aws_vpc.default.id
 }
 
 output "public_subnets" {
-  value = module.vpc.public_subnets
+  value = data.aws_subnets.default.ids
 }
 
 output "alb_dns_name" {
