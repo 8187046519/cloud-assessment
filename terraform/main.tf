@@ -143,10 +143,15 @@ resource "aws_lb_target_group" "app_tg" {
 
   vpc_id = local.vpc_id
 
-  health_check {
-    path = "/"
-    port = "5000"
-  }
+health_check {
+  enabled             = true
+  healthy_threshold   = 3
+  unhealthy_threshold = 3
+  interval            = 30
+  path                = "/"
+  port                = "5000"
+  protocol            = "HTTP"
+}
 }
 
 resource "aws_lb_listener" "app_listener" {

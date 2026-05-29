@@ -1,39 +1,43 @@
-# Cloud Assessment Project
+# Cloud Application Deployment
 
 ## Overview
-This project demonstrates a full DevOps CI/CD pipeline using AWS and Terraform.
+
+This project deploys a containerized web application on AWS using Terraform and ECS Fargate.
 
 ## Architecture
-- GitHub → Source Code Management
-- GitHub Actions → CI/CD Pipeline
-- Terraform → Infrastructure as Code
-- AWS ECS → Container Deployment
-- AWS ECR → Docker Image Registry
-- AWS ALB → Load Balancer
-- AWS VPC → Networking
-- CloudWatch → Logging
 
-## Services Used
-- AWS ECS (Fargate)
-- AWS ECR
-- AWS VPC
-- AWS ALB
-- AWS CloudWatch
-- Terraform
-- GitHub Actions
+* AWS ECS Fargate
+* Application Load Balancer
+* CloudWatch Logs
+* Security Groups
+* Public Subnets
+* VPC Networking
 
-## Deployment Flow
-1. Code pushed to GitHub
-2. GitHub Actions triggered
-3. Terraform runs infrastructure deployment
-4. Docker image deployed on ECS
-5. ALB exposes application
+## Design Decisions
 
-## Application
-Flask app running on port 5000.
+* ECS Fargate chosen to avoid EC2 management
+* ALB used for traffic distribution
+* Terraform used for Infrastructure as Code
+* CloudWatch enabled for monitoring/logging
 
-## Output
-Public URL is generated via ALB DNS.
+## Trade-offs
 
-## Author
-Cloud DevOps Project
+* Public subnets used for simplicity and faster deployment
+* NAT Gateway/private subnets skipped to reduce complexity and cost
+
+## Cost Optimization
+
+* Small Fargate task size
+* Minimal log retention
+* Only required resources deployed
+
+## Deployment
+
+```bash
+terraform init
+terraform apply -auto-approve
+```
+
+## CI/CD
+
+GitHub Actions pipeline validates Terraform automatically on push.
